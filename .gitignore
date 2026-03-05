@@ -1,0 +1,5 @@
+*.jar
+__pycache__
+tests
+reqs.md
+target
