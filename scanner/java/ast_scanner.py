@@ -86,9 +86,16 @@ def normalize(data: dict, source_path: str) -> dict:
     data.setdefault("project", Path(source_path).name)
     data.setdefault("entrypoints", [])
     data.setdefault("graph", {"nodes": [], "edges": []})
+    data.setdefault("httpDependencies", {"service": Path(source_path).name, "dependencies": []})
     data.setdefault("metadata", {})
     data["metadata"].setdefault("errors", [])
     return data
+
+
+def split_http_dependencies(data: dict) -> tuple[dict, dict]:
+    """Extract httpDependencies into a separate artifact, return (ast_data, http_deps)."""
+    http_deps = data.pop("httpDependencies", {"service": data.get("project", ""), "dependencies": []})
+    return data, http_deps
 
 
 def main():
@@ -119,16 +126,25 @@ def main():
     cmd = build_engine_args(jar, args)
     result = run_engine(cmd)
     result = normalize(result, args.source)
+    result, http_deps = split_http_dependencies(result)
 
     output_json = json.dumps(result, indent=2)
+    http_deps_json = json.dumps(http_deps, indent=2)
 
     if args.output:
         out = Path(args.output)
         if out.is_dir() or args.output.endswith("/"):
-            out = out / f"{Path(args.source).name}-ast.json"
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(output_json)
-        print(f"Output written to: {out}")
+            service_name = Path(args.source).name
+            ast_out = out / f"{service_name}-ast.json"
+            http_out = out / f"{service_name}-http-dependencies.json"
+        else:
+            ast_out = out
+            http_out = out.parent / out.name.replace("-ast.json", "-http-dependencies.json").replace(".json", "-http-dependencies.json")
+        ast_out.parent.mkdir(parents=True, exist_ok=True)
+        ast_out.write_text(output_json)
+        http_out.write_text(http_deps_json)
+        print(f"Output written to: {ast_out}")
+        print(f"HTTP dependencies written to: {http_out}")
     else:
         print(output_json)
 

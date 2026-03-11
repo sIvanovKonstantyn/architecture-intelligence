@@ -32,10 +32,11 @@ public class FlowBuilder {
     private final Map<String, CtMethod<?>> methodIndex = new HashMap<>();
 
     public FlowBuilder(CallGraphBuilder graph, TransactionAnalyzer txAnalyzer,
-                       ExternalCallDetector extDetector, int maxDepth) {
+                       ExternalCallDetector extDetector, HttpDependencyExtractor httpExtractor, int maxDepth) {
         this.graph = graph;
         this.txAnalyzer = txAnalyzer;
         this.extDetector = extDetector;
+        this.extDetector.setHttpExtractor(httpExtractor);
         this.maxDepth = maxDepth;
     }
 
@@ -128,8 +129,20 @@ public class FlowBuilder {
         visited.add(nodeId);
 
         // External calls
-        for (Map<String, Object> ext : extDetector.detect(method)) {
-            steps.add(Map.of("externalCall", ext));
+        for (Map<String, Object> ext : extDetector.detect(type, method)) {
+            Map<String, Object> step = new LinkedHashMap<>();
+            String extType = (String) ext.get("type");
+            if ("HTTP".equals(extType)) {
+                step.put("call", ext.getOrDefault("targetService", "?") + ":" + ext.getOrDefault("url", "?"));
+                step.put("componentType", "HTTP_CLIENT");
+                step.put("httpMethod", ext.get("httpMethod"));
+                step.put("url", ext.get("url"));
+                step.put("targetService", ext.get("targetService"));
+                step.put("clientType", ext.get("clientType"));
+            } else {
+                step.put("externalCall", ext);
+            }
+            steps.add(step);
         }
 
         // Structural flow from body

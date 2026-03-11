@@ -18,16 +18,24 @@ public class AstEngine {
 
         TransactionAnalyzer txAnalyzer = new TransactionAnalyzer();
         ExternalCallDetector extDetector = new ExternalCallDetector();
-        FlowBuilder flowBuilder = new FlowBuilder(graphBuilder, txAnalyzer, extDetector, cli.maxDepth);
+        HttpDependencyExtractor httpExtractor = new HttpDependencyExtractor();
+        FlowBuilder flowBuilder = new FlowBuilder(graphBuilder, txAnalyzer, extDetector, httpExtractor, cli.maxDepth);
 
         List<Map<String, Object>> entrypoints = flowBuilder.buildEntrypoints(
             types, cli.entrypointFilter
         );
 
+        String projectName = cli.source.getFileName() != null ? cli.source.getFileName().toString() : cli.source.toString();
+
+        Map<String, Object> httpDeps = new LinkedHashMap<>();
+        httpDeps.put("service", projectName);
+        httpDeps.put("dependencies", httpExtractor.extract(types));
+
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("project", cli.source.getFileName() != null ? cli.source.getFileName().toString() : cli.source.toString());
+        result.put("project", projectName);
         result.put("entrypoints", entrypoints);
         result.put("graph", graphBuilder.toJson());
+        result.put("httpDependencies", httpDeps);
         result.put("metadata", Map.of("errors", errors));
 
         System.out.println(JsonSerializer.toJson(result));
