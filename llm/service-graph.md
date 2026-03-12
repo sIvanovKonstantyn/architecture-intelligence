@@ -1,4 +1,5 @@
 You are given a JSON object that represents service dependencies in a system.
+Generate the service-graph.md
 
 Rules:
 - Each key is a service.
@@ -29,6 +30,6 @@ graph LR
     ess --> keycloak
     ess --> rhapsody
 ```
-Now generate the Mermaid diagram for the provided JSON.
+Now generate the Mermaid diagram for the provided JSON. 
 
 Return ONLY the generated doc path. Do not include explanations.

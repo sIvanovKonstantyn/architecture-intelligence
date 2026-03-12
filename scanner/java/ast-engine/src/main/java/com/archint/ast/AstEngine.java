@@ -19,6 +19,7 @@ public class AstEngine {
         TransactionAnalyzer txAnalyzer = new TransactionAnalyzer();
         ExternalCallDetector extDetector = new ExternalCallDetector();
         HttpDependencyExtractor httpExtractor = new HttpDependencyExtractor();
+        EventDependencyExtractor eventExtractor = new EventDependencyExtractor();
         FlowBuilder flowBuilder = new FlowBuilder(graphBuilder, txAnalyzer, extDetector, httpExtractor, cli.maxDepth);
 
         List<Map<String, Object>> entrypoints = flowBuilder.buildEntrypoints(
@@ -31,11 +32,16 @@ public class AstEngine {
         httpDeps.put("service", projectName);
         httpDeps.put("dependencies", httpExtractor.extract(types));
 
+        Map<String, Object> eventDeps = new LinkedHashMap<>();
+        eventDeps.put("service", projectName);
+        eventDeps.put("events", eventExtractor.extract(types));
+
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("project", projectName);
         result.put("entrypoints", entrypoints);
         result.put("graph", graphBuilder.toJson());
         result.put("httpDependencies", httpDeps);
+        result.put("eventDependencies", eventDeps);
         result.put("metadata", Map.of("errors", errors));
 
         System.out.println(JsonSerializer.toJson(result));

@@ -87,15 +87,17 @@ def normalize(data: dict, source_path: str) -> dict:
     data.setdefault("entrypoints", [])
     data.setdefault("graph", {"nodes": [], "edges": []})
     data.setdefault("httpDependencies", {"service": Path(source_path).name, "dependencies": []})
+    data.setdefault("eventDependencies", {"service": Path(source_path).name, "events": []})
     data.setdefault("metadata", {})
     data["metadata"].setdefault("errors", [])
     return data
 
 
-def split_http_dependencies(data: dict) -> tuple[dict, dict]:
-    """Extract httpDependencies into a separate artifact, return (ast_data, http_deps)."""
+def split_artifacts(data: dict) -> tuple[dict, dict, dict]:
+    """Extract httpDependencies and eventDependencies into separate artifacts."""
     http_deps = data.pop("httpDependencies", {"service": data.get("project", ""), "dependencies": []})
-    return data, http_deps
+    event_deps = data.pop("eventDependencies", {"service": data.get("project", ""), "events": []})
+    return data, http_deps, event_deps
 
 
 def main():
@@ -126,25 +128,31 @@ def main():
     cmd = build_engine_args(jar, args)
     result = run_engine(cmd)
     result = normalize(result, args.source)
-    result, http_deps = split_http_dependencies(result)
+    result, http_deps, event_deps = split_artifacts(result)
 
     output_json = json.dumps(result, indent=2)
     http_deps_json = json.dumps(http_deps, indent=2)
+    event_deps_json = json.dumps(event_deps, indent=2)
 
     if args.output:
         out = Path(args.output)
         if out.is_dir() or args.output.endswith("/"):
             service_name = Path(args.source).name
-            ast_out = out / f"{service_name}-ast.json"
-            http_out = out / f"{service_name}-http-dependencies.json"
+            ast_out   = out / f"{service_name}-ast.json"
+            http_out  = out / f"{service_name}-http-dependencies.json"
+            event_out = out / f"{service_name}-event-dependencies.json"
         else:
-            ast_out = out
-            http_out = out.parent / out.name.replace("-ast.json", "-http-dependencies.json").replace(".json", "-http-dependencies.json")
+            ast_out   = out
+            stem      = out.name.replace("-ast.json", "").replace(".json", "")
+            http_out  = out.parent / f"{stem}-http-dependencies.json"
+            event_out = out.parent / f"{stem}-event-dependencies.json"
         ast_out.parent.mkdir(parents=True, exist_ok=True)
         ast_out.write_text(output_json)
         http_out.write_text(http_deps_json)
+        event_out.write_text(event_deps_json)
         print(f"Output written to: {ast_out}")
         print(f"HTTP dependencies written to: {http_out}")
+        print(f"Event dependencies written to: {event_out}")
     else:
         print(output_json)
 
