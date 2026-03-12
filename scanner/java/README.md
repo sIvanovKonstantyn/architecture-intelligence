@@ -103,6 +103,37 @@ python ast_scanner.py \
 
 ---
 
+# Java Libs KB Parser
+
+Parses a Maven `pom.xml` to extract dependencies and scaffolds a knowledge base directory with one Markdown stub per library.
+
+## Requirements
+
+- Python 3.8+
+
+## Usage
+
+```bash
+python libs_kb_parser.py <pom.xml> <kb_dir>
+```
+
+## Parameters
+
+| Parameter | Description |
+|---|---|
+| `pom.xml` | Path to the Maven POM file to parse |
+| `kb_dir` | Directory where Markdown stubs will be created |
+
+## Example
+
+```bash
+python libs_kb_parser.py /projects/my-service/pom.xml /tmp/kb
+```
+
+For each dependency found, a file named `<groupId>.<artifactId>.md` is created in `kb_dir` with a short prompt asking for a usage guide. Already-existing files are skipped.
+
+---
+
 # Java REST Scanner
 
 ## Notes
